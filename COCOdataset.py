@@ -1,15 +1,15 @@
 import os
-import pandas as pd
+# import pandas as pd
 import torch
-from torchvision.io import read_image
+# from torchvision.io import read_image
 from torch.utils.data import Dataset
-import json
+# import json
 
 from PIL import Image
 from torchvision.transforms import Compose, Resize, CenterCrop, ToTensor, Normalize
 from torchvision.transforms import InterpolationMode
 BICUBIC = InterpolationMode.BICUBIC
-from simple_tokenizer import SimpleTokenizer as Tokenizer
+from .simple_tokenizer import SimpleTokenizer as Tokenizer
 from typing import Any, Union, List
 from pycocotools.coco import COCO
 import matplotlib.pyplot as plt
@@ -36,42 +36,55 @@ class COCODataset(Dataset):
 
     def __len__(self):
         return len(self.imgID)
+
     
+
     def __getitem__(self, index):
         img_id = self.imgID[index]
 
-        bbox, cat = self.getBbox(img_id)
-        captions = self.getCaptions(img_id)
+        bbox, cat = self._getBbox(img_id)
+        captions = self._getCaptions(img_id)
 
-        filename = self.getImageFileName(img_id)
-        image = self.get_raw_data(filename)
+        filename = self._getImageFileName(img_id)
+        image = self._get_raw_data(filename)
         image = self.image_transform(image)
         captions = self.text_transform(captions)
         return image, captions, bbox, cat
     
-    def getImageFileName(self, id):
+    @property
+    def idx_to_class(self):
+        cats = self.bbox_ann.loadCats(self.bbox_ann.getCatIds())
+        return {x['id']:x['name'] for x in cats} 
+
+    def _getImageFileName(self, id):
         data = self.bbox_ann.loadImgs(id)
         return data[0]['file_name']
-    def getBbox(self, id):
+
+    def _getBbox(self, id):
         ann_ids = self.bbox_ann.getAnnIds(imgIds=id)
         bAnns = self.bbox_ann.loadAnns(ann_ids)
         bbox = torch.tensor([x['bbox'] for x in bAnns])
         cat =  torch.tensor([x['category_id'] for x in bAnns])
         return bbox, cat
 
-    def getCaptions(self, id):
+    def _getCaptions(self, id):
         ann_ids = self.caption_ann.getAnnIds(imgIds=id)
         cAnns = self.caption_ann.loadAnns(ann_ids)
         captions = [x['caption'] for x in cAnns]
         return captions
 
-    def getCatName(self, id):
+    def _getCatName(self, id):
         return self.bbox_ann.loadCats(id)[0]['name']
     
-    def get_raw_data(self, filename):
+    def _get_raw_data(self, filename):
         img_path = os.path.join(self.image_root, filename)
         image = Image.open(img_path) #0-1
         return image
+
+    def get_raw_data(self, index):
+        img_id = self.imgID[index]
+        filename = self._getImageFileName(img_id)
+        return self._get_raw_data(filename)
 
     def showBboxAnn(self, index):
         img_id = self.imgID[index]
@@ -95,11 +108,11 @@ def _convert_image_to_rgb(image):
 
 def _transform(n_px):
     return Compose([
-        Resize(n_px, interpolation=BICUBIC),
-        CenterCrop(n_px),
+        # Resize(n_px, interpolation=BICUBIC),
+        # CenterCrop(n_px),
         _convert_image_to_rgb,
         ToTensor(),
-        Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711)),
+        # Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711)),
     ])
 
 def tokenize(texts: Union[str, List[str]], context_length: int = 77, truncate: bool = False) -> torch.LongTensor:
