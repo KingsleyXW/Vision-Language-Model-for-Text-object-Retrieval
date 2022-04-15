@@ -9,7 +9,7 @@ from PIL import Image
 from torchvision.transforms import Compose, Resize, CenterCrop, ToTensor, Normalize
 from torchvision.transforms import InterpolationMode
 BICUBIC = InterpolationMode.BICUBIC
-from .simple_tokenizer import SimpleTokenizer as Tokenizer
+from simple_tokenizer import SimpleTokenizer as Tokenizer
 from typing import Any, Union, List
 from pycocotools.coco import COCO
 import matplotlib.pyplot as plt
@@ -42,11 +42,11 @@ class COCODataset(Dataset):
     def __getitem__(self, index):
         img_id = self.imgID[index]
 
-        bbox, cat = self._getBbox(img_id)
-        captions = self._getCaptions(img_id)
+        bbox, cat = self.__getBbox(img_id)
+        captions = self.__getCaptions(img_id)
 
-        filename = self._getImageFileName(img_id)
-        image = self._get_raw_data(filename)
+        filename = self.__getImageFileName(img_id)
+        image = self.__get_raw_data(filename)
         image = self.image_transform(image)
         captions = self.text_transform(captions)
         return image, captions, bbox, cat
@@ -56,40 +56,40 @@ class COCODataset(Dataset):
         cats = self.bbox_ann.loadCats(self.bbox_ann.getCatIds())
         return {x['id']:x['name'] for x in cats} 
 
-    def _getImageFileName(self, id):
+    def __getImageFileName(self, id):
         data = self.bbox_ann.loadImgs(id)
         return data[0]['file_name']
 
-    def _getBbox(self, id):
+    def __getBbox(self, id):
         ann_ids = self.bbox_ann.getAnnIds(imgIds=id)
         bAnns = self.bbox_ann.loadAnns(ann_ids)
         bbox = torch.tensor([x['bbox'] for x in bAnns])
         cat =  torch.tensor([x['category_id'] for x in bAnns])
         return bbox, cat
 
-    def _getCaptions(self, id):
+    def __getCaptions(self, id):
         ann_ids = self.caption_ann.getAnnIds(imgIds=id)
         cAnns = self.caption_ann.loadAnns(ann_ids)
         captions = [x['caption'] for x in cAnns]
         return captions
 
-    def _getCatName(self, id):
+    def getCatName(self, id):
         return self.bbox_ann.loadCats(id)[0]['name']
     
-    def _get_raw_data(self, filename):
+    def __get_raw_data(self, filename):
         img_path = os.path.join(self.image_root, filename)
         image = Image.open(img_path) #0-1
         return image
 
     def get_raw_data(self, index):
         img_id = self.imgID[index]
-        filename = self._getImageFileName(img_id)
-        return self._get_raw_data(filename)
+        filename = self.__getImageFileName(img_id)
+        return self.__get_raw_data(filename)
 
     def showBboxAnn(self, index):
         img_id = self.imgID[index]
         img = self.bbox_ann.loadImgs(img_id)[0]
-        I = self.get_raw_data(img['file_name'])
+        I = self.__get_raw_data(img['file_name'])
         plt.imshow(I); plt.axis('off')
         annIds = self.bbox_ann.getAnnIds(imgIds=img['id'])
         anns = self.bbox_ann.loadAnns(annIds)
