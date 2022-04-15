@@ -683,6 +683,7 @@ def crop_objects(img, boxes, num_objects):
         if xmin !=-1 and ymin !=-1 and xmax !=-1 and ymax !=-1:
             cropped_img = img[:,int(ymin)-extra_pixel:int(ymax)+extra_pixel, int(xmin)-extra_pixel:int(xmax)+extra_pixel]
             # print(int(ymin), int(ymax), int(xmin), int(xmax))
+            img_scaled = cv2.resize(cropped_img, (224*4, 224*4), interpolation = cv2.INTER_AREA)
             print(cropped_img.shape)
             cropped_images.append(cropped_img)
     return cropped_images
