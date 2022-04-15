@@ -78,6 +78,7 @@ class COCODataset(Dataset):
         return captions
 
     def getCatName(self, id):
+        # id is coco bbox id, not the image index in this dataset!
         return self.bbox_ann.loadCats(id)[0]['name']
     
     def __get_raw_data(self, filename):
