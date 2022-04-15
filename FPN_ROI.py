@@ -588,11 +588,6 @@ def sample_rpn_training(
     bg_idx = background[perm2]
     return fg_idx, bg_idx
 
-
-# ----------------------------------------------------------------------------
-# BEGINNING OF ERRATA TO FIX FASTER R-CNN CAUSING LOW mAP.
-# STUDENT: FEEL FREE TO DELETE THESE COMMENT BLOCKS (HERE AND EVERYWHERE ELSE).
-# ----------------------------------------------------------------------------
 @torch.no_grad()
 def reassign_proposals_to_fpn_levels(
     proposals_per_image: List[torch.Tensor],
