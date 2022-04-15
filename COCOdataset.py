@@ -8,7 +8,11 @@ from torch.utils.data import Dataset
 from PIL import Image
 from torchvision.transforms import Compose, Resize, CenterCrop, ToTensor, Normalize
 from torchvision.transforms import InterpolationMode
-BICUBIC = InterpolationMode.BICUBIC
+# BICUBIC = InterpolationMode.BICUBIC
+
+import sys 
+sys.path.append(os.path.dirname(__file__))
+
 from simple_tokenizer import SimpleTokenizer as Tokenizer
 from typing import Any, Union, List
 from pycocotools.coco import COCO
