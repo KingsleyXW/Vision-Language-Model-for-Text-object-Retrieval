@@ -676,6 +676,7 @@ def reassign_proposals_to_fpn_levels(
 
 def crop_objects(img, boxes, num_objects):
     size = 224*4
+    # model, preprocess = clip.load("ViT-B/16")
     cropped_images = []
     for i in range(num_objects):
 
@@ -1049,6 +1050,7 @@ class FasterRCNN(nn.Module):
         stem_channels: List[int],
         num_classes: int,
         batch_size_per_image: int,
+        clip_model,
         roi_size: Tuple[int, int] = (7, 7),
     ):
         super().__init__()
@@ -1057,7 +1059,7 @@ class FasterRCNN(nn.Module):
         self.num_classes = num_classes
         self.roi_size = roi_size
         self.batch_size_per_image = batch_size_per_image
-        self.clipmodel, self.clippreprocess = clip.load("ViT-B/32")
+        self.clipmodel = clip_model
 
         ######################################################################
         # TODO: Create a stem of alternating 3x3 convolution layers and RELU
@@ -1210,20 +1212,23 @@ class FasterRCNN(nn.Module):
             # print(matched_gt_boxes_per_im.shape)
             # print(images.shape[0])
             cropped_images_per_image = crop_objects(images[_idx], matched_gt_boxes_per_im, matched_gt_boxes_per_im.shape[0])
-            # print(images[_idx].shape)
+            # # print(images[_idx].shape)
             cropped_images_per_image = torch.stack(cropped_images_per_image)
-            # print(len(cropped_images_per_image))
+            # # print(len(cropped_images_per_image))
             cropped_images_all.append(cropped_images_per_image)
             # print(cropped_images_per_image.shape)
         # Combine predictions and GT from across all FPN levels.
         matched_gt_boxes = torch.cat(matched_gt_boxes, dim=0)
         cropped_images_all = torch.cat(cropped_images_all, dim=0)
+        # print(cropped_images_all.size())
+        centercrop = torchvision.transforms.CenterCrop(224)
+        cropped_images_all = centercrop.forward(cropped_images_all)
         print(cropped_images_all.size())
-        
         with torch.no_grad():
             image_features = self.clipmodel.encode_image(cropped_images_all).float()
-
         print(image_features.shape)
+
+        # print(image_features.shape)
         # print(text_tokens.shape)
         
         ######################################################################
