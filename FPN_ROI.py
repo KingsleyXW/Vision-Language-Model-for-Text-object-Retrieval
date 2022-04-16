@@ -6,6 +6,7 @@ import torchvision
 from common import class_spec_nms, get_fpn_location_coords, nms
 from torch import nn
 from torch.nn import functional as F
+import cv2
 
 class RPNPredictionNetwork(nn.Module):
     """
@@ -673,7 +674,7 @@ def reassign_proposals_to_fpn_levels(
     return proposals_per_fpn_level
 
 def crop_objects(img, boxes, num_objects):
-    
+    size = 224*4
     cropped_images = []
     for i in range(num_objects):
 
@@ -683,7 +684,10 @@ def crop_objects(img, boxes, num_objects):
         if xmin !=-1 and ymin !=-1 and xmax !=-1 and ymax !=-1:
             cropped_img = img[:,int(ymin)-extra_pixel:int(ymax)+extra_pixel, int(xmin)-extra_pixel:int(xmax)+extra_pixel]
             # print(int(ymin), int(ymax), int(xmin), int(xmax))
-            img_scaled = cv2.resize(cropped_img, (224*4, 224*4), interpolation = cv2.INTER_AREA)
+            padding = nn.ZeroPad2d((0, size-cropped_img.shape[2], size-cropped_img.shape[1], 0))
+            cropped_img = padding(cropped_img)
+            # cropped_img = cv2.resize(cropped_img, (3, 224*4, 224*4), interpolation = cv2.INTER_AREA)
+            
             print(cropped_img.shape)
             cropped_images.append(cropped_img)
     return cropped_images
