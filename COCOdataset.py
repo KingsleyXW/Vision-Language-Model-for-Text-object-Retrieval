@@ -9,7 +9,7 @@ from PIL import Image
 from torchvision.transforms import Compose, Resize, CenterCrop, ToTensor, Normalize
 from torchvision.transforms import InterpolationMode
 # BICUBIC = InterpolationMode.BICUBIC
-
+import random
 import sys 
 sys.path.append(os.path.dirname(__file__))
 
@@ -21,14 +21,23 @@ import matplotlib.pyplot as plt
 BICUBIC = InterpolationMode.BICUBIC
 tokenizer = Tokenizer()
 
+# def cocoCollate(batch):
+#     image = [x[0] for x in batch]
+#     captions = torch.cat([x[1] for x in batch])
+#     bbox = [x[2] for x in batch]
+#     cat = [x[3] for x in batch]
+#     return image, captions, bbox, cat
+
 class COCODataset(Dataset):
-    def __init__(self, bbox_file, cap_file, image_root, image_transform=None, text_transform=None):
+    def __init__(self, bbox_file, cap_file, image_root, device='cpu', one_caption=False, image_transform=None, text_transform=None):
+        self.one_caption = one_caption
         self.bbox_ann = COCO(bbox_file)
         self.caption_ann = COCO(cap_file)
         self.imgID = list(self.bbox_ann.imgs.keys())
         self.image_root = image_root
         cats = self.bbox_ann.loadCats(self.bbox_ann.getCatIds())
         self.cats = [cat['name'] for cat in cats]
+        self.device = device
         if image_transform:
             self.image_transform = image_transform
         else:
@@ -48,7 +57,8 @@ class COCODataset(Dataset):
 
         bbox, cat = self.__getBbox(img_id)
         captions = self.__getCaptions(img_id)
-
+        if self.one_caption:
+            captions = [random.choice(captions)]
         filename = self.__getImageFileName(img_id)
         image = self.__get_raw_data(filename)
         image = self.image_transform(image)
@@ -60,6 +70,15 @@ class COCODataset(Dataset):
         cats = self.bbox_ann.loadCats(self.bbox_ann.getCatIds())
         return {x['id']:x['name'] for x in cats} 
 
+    def gen_collate(self):
+        def cocoCollate(batch):
+            image = [x[0].to(device=self.device) for x in batch]
+            captions = torch.cat([x[1] for x in batch]).to(device=self.device)
+            bbox = [x[2].to(device=self.device) for x in batch]
+            cat = [x[3].to(device=self.device) for x in batch]
+            return image, captions, bbox, cat
+        return cocoCollate
+
     def __getImageFileName(self, id):
         data = self.bbox_ann.loadImgs(id)
         return data[0]['file_name']
@@ -68,6 +87,11 @@ class COCODataset(Dataset):
         ann_ids = self.bbox_ann.getAnnIds(imgIds=id)
         bAnns = self.bbox_ann.loadAnns(ann_ids)
         bbox = torch.tensor([x['bbox'] for x in bAnns])
+        try:
+            bbox[:, 2] += bbox[:, 0]
+            bbox[:, 3] += bbox[:, 1]
+        except:
+            bbox = torch.zeros(0, 4)
         cat =  torch.tensor([x['category_id'] for x in bAnns])
         return bbox, cat
 
