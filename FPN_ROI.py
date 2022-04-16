@@ -7,6 +7,7 @@ from common import class_spec_nms, get_fpn_location_coords, nms
 from torch import nn
 from torch.nn import functional as F
 import cv2
+import clip
 
 class RPNPredictionNetwork(nn.Module):
     """
@@ -688,7 +689,7 @@ def crop_objects(img, boxes, num_objects):
             cropped_img = padding(cropped_img)
             # cropped_img = cv2.resize(cropped_img, (3, 224*4, 224*4), interpolation = cv2.INTER_AREA)
             
-            print(cropped_img.shape)
+            # print(cropped_img.shape)
             cropped_images.append(cropped_img)
     return cropped_images
 
@@ -1056,6 +1057,7 @@ class FasterRCNN(nn.Module):
         self.num_classes = num_classes
         self.roi_size = roi_size
         self.batch_size_per_image = batch_size_per_image
+        self.clipmodel, self.clippreprocess = clip.load("ViT-B/32")
 
         ######################################################################
         # TODO: Create a stem of alternating 3x3 convolution layers and RELU
@@ -1209,13 +1211,21 @@ class FasterRCNN(nn.Module):
             # print(images.shape[0])
             cropped_images_per_image = crop_objects(images[_idx], matched_gt_boxes_per_im, matched_gt_boxes_per_im.shape[0])
             # print(images[_idx].shape)
+            cropped_images_per_image = torch.stack(cropped_images_per_image)
             # print(len(cropped_images_per_image))
             cropped_images_all.append(cropped_images_per_image)
+            # print(cropped_images_per_image.shape)
         # Combine predictions and GT from across all FPN levels.
         matched_gt_boxes = torch.cat(matched_gt_boxes, dim=0)
-        # cropped_images_all = torch.cat(cropped_images_all, dim=0)
-        # print(cropped_images_all.size())
+        cropped_images_all = torch.cat(cropped_images_all, dim=0)
+        print(cropped_images_all.size())
+        
+        with torch.no_grad():
+            image_features = self.clipmodel.encode_image(cropped_images_all).float()
 
+        print(image_features.shape)
+        # print(text_tokens.shape)
+        
         ######################################################################
         # TODO: Train the classifier head. Perform these steps in order:
         #   1. Sample a few RPN proposals, like you sampled 50-50% anchor boxes
