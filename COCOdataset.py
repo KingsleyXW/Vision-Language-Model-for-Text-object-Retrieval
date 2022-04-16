@@ -21,12 +21,7 @@ import matplotlib.pyplot as plt
 BICUBIC = InterpolationMode.BICUBIC
 tokenizer = Tokenizer()
 
-# def cocoCollate(batch):
-#     image = [x[0] for x in batch]
-#     captions = torch.cat([x[1] for x in batch])
-#     bbox = [x[2] for x in batch]
-#     cat = [x[3] for x in batch]
-#     return image, captions, bbox, cat
+
 
 class COCODataset(Dataset):
     def __init__(self, bbox_file, cap_file, image_root, device='cpu', one_caption=False, image_transform=None, text_transform=None):
@@ -94,7 +89,11 @@ class COCODataset(Dataset):
             bbox = torch.zeros(0, 4)
         cat =  torch.tensor([x['category_id'] for x in bAnns])
         return bbox, cat
-
+    def getCaptions(self, index):
+        img_id = self.imgID[index]
+        captions = self.__getCaptions(img_id)
+        captions = self.text_transform(captions)
+        return img_id, captions
     def __getCaptions(self, id):
         ann_ids = self.caption_ann.getAnnIds(imgIds=id)
         cAnns = self.caption_ann.loadAnns(ann_ids)
@@ -104,7 +103,7 @@ class COCODataset(Dataset):
     def getCatName(self, id):
         # id is coco bbox id, not the image index in this dataset!
         return self.bbox_ann.loadCats(id)[0]['name']
-    
+
     def __get_raw_data(self, filename):
         img_path = os.path.join(self.image_root, filename)
         image = Image.open(img_path) #0-1
