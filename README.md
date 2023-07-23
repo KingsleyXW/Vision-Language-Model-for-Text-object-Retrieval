@@ -1,1 +1,1 @@
-# EECS545_project
+## resent a vision-language model that can detect the object according totext. We replace the original classification output of the detector with 512-dim embedding outputs. The existing dataset does’t have object level text, so we use prompts with category name to train our detector model, and distill the object embedding knowledge with CLIP model to improve performance on arbitrary text inputs.
